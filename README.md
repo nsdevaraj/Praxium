@@ -60,8 +60,32 @@ npm run lint     # oxlint
 ```
 
 To let simulated competitors use TypeSafe AI's Jev model instead of the deterministic fallback strategies, set
-`TYPESAFE_API_KEY` in a `.env` file at the project root before running `npm run dev` or `npm run build`. The key is
-only read server-side by the Vite dev/build proxy and is never sent to the browser.
+`TYPESAFE_API_KEY` in a `.env` file at the project root before running `npm run dev`. The key is
+only read server-side by the Vite development proxy and is never sent to the browser.
+
+## Deploying to Vercel
+
+Praxium is a single-page app using React Router's `BrowserRouter`. Paths such as `/catalog`, `/facilitate`,
+`/sim/aether`, and `/play/:code` are client-side routes, not separate HTML files. Without a server-side rewrite,
+opening or refreshing these URLs on Vercel returns `404 NOT_FOUND` before React can load.
+
+The root [`vercel.json`](vercel.json) configures the Vite build and rewrites client-side URLs to `/index.html`.
+It excludes `/api` and `/assets` so API requests and missing build assets do not receive the app's HTML instead.
+
+1. Set the Vercel project's **Root Directory** to the directory containing `package.json` and `vercel.json`
+   (the repository root for this layout).
+2. Use **Vite** as the framework, **`npm run build`** as the build command, and **`dist`** as the output directory.
+   These values are also declared in `vercel.json`.
+3. Include `vercel.json` in the source deployed to Vercel, then create a new production deployment. An existing
+   deployment will not pick up local configuration changes.
+4. Verify direct navigation and browser refresh on `/catalog`, `/facilitate`, and `/sim/aether`, as well as `/`.
+   Each should load the app without a Vercel `NOT_FOUND` page.
+
+**TypeSafe AI in production:** the `/api/typesafe` middleware in [`vite.config.ts`](vite.config.ts) runs only in
+the Vite development server. Neither `npm run build` nor `npm run preview` deploys that middleware. A production
+TypeSafe integration needs a server-side endpoint, such as a Vercel Function at `/api/typesafe`, with
+`TYPESAFE_API_KEY` configured in Vercel's environment settings. The SPA rewrite does not provide this endpoint.
+Do not prefix the secret with `VITE_`, which would expose it to client code.
 
 ## Stack
 
