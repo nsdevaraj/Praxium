@@ -5,7 +5,7 @@ import { applyNorthwindChoice } from "./engine/northwind"
 import { addHumanTeam, advanceRound, createSession, joinTeam } from "./engine/session"
 import { uid } from "./lib/format"
 import type { Session, User } from "./lib/types"
-import { getCompetitorPostures } from "./lib/typesafe"
+import { getCompetitorPostures } from "./lib/laya"
 
 interface AppState {
   user: User | null

@@ -5,11 +5,10 @@ export interface CompetitorSignal {
 
 export async function getCompetitorSignal(state: object): Promise<CompetitorSignal | null> {
   try {
-    const response = await fetch('/api/typesafe', {
+    const response = await fetch('/api/laya', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'jev-latest',
         state,
         questions: {
           posture: {

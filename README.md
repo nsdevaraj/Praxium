@@ -28,9 +28,9 @@ The catalog and each simulation's briefing content live in [`src/data/catalog.ts
 2. **Make decisions.** Each simulation has its own decision board (R&D sliders, pricing, production, case choices,
    and so on) driven by the engines in [`src/engine`](src/engine).
 3. **Compete against the field.** Every room is seeded with simulated competitor companies. Their strategy is chosen
-   by TypeSafe AI's Jev model (via a small dev-server proxy in [`vite.config.ts`](vite.config.ts) that keeps
-   `TYPESAFE_API_KEY` server-side) and mapped onto real in-engine decisions, with a strong deterministic fallback if
-   the API is unavailable.
+   by Laya (via the optional local service in [`laya_server.py`](laya_server.py), reached through the dev-server
+   proxy in [`vite.config.ts`](vite.config.ts)) and mapped onto real in-engine decisions, with a strong deterministic
+   fallback if the service is unavailable.
 4. **Track the leaderboard.** A live, round-by-round leaderboard shows your rank against simulated competitors as the
    simulation progresses, gamifying the run instead of hiding the score until the end.
 5. **Debrief.** When the rounds run out, the room shows a performance dashboard: final rank, scorecards, a
@@ -45,7 +45,7 @@ src/
   store.ts          zustand store — sessions, teams, decisions, round advancement
   engine/           per-simulation rules (aether, harborline, markline, northwind)
   data/catalog.ts   simulation metadata shown in the catalog and briefing pages
-  lib/typesafe.ts   client for the TypeSafe AI competitor-strategy proxy
+  lib/laya.ts       client for the Laya competitor-strategy proxy
   pages/            Landing, Catalog, SimDetail, Join, Play, Facilitate, Debrief
   components/       shared UI (Layout, Logo, Covers, form controls)
 ```
@@ -59,9 +59,16 @@ npm run build    # type-check and produce a production build
 npm run lint     # oxlint
 ```
 
-To let simulated competitors use TypeSafe AI's Jev model instead of the deterministic fallback strategies, set
-`TYPESAFE_API_KEY` in a `.env` file at the project root before running `npm run dev`. The key is
-only read server-side by the Vite development proxy and is never sent to the browser.
+To let simulated competitors use Laya instead of the deterministic fallback strategies, install the Python
+dependencies and start the local adapter in a second terminal:
+
+```bash
+python3 -m pip install -r requirements.txt
+python3 laya_server.py
+```
+
+The Vite proxy sends requests to `http://127.0.0.1:8000/predict` by default. Set `LAYA_API_URL` in `.env` to
+override that URL. The adapter loads Laya's model on first start and keeps it in memory.
 
 ## Deploying to Vercel
 
@@ -81,11 +88,12 @@ It excludes `/api` and `/assets` so API requests and missing build assets do not
 4. Verify direct navigation and browser refresh on `/catalog`, `/facilitate`, and `/sim/aether`, as well as `/`.
    Each should load the app without a Vercel `NOT_FOUND` page.
 
-**TypeSafe AI in production:** the `/api/typesafe` middleware in [`vite.config.ts`](vite.config.ts) runs only in
-the Vite development server. Neither `npm run build` nor `npm run preview` deploys that middleware. A production
-TypeSafe integration needs a server-side endpoint, such as a Vercel Function at `/api/typesafe`, with
-`TYPESAFE_API_KEY` configured in Vercel's environment settings. The SPA rewrite does not provide this endpoint.
-Do not prefix the secret with `VITE_`, which would expose it to client code.
+**Laya in production:** [`api/laya.py`](api/laya.py) is deployed as a Vercel Python Function at `/api/laya`.
+Vercel installs the dependency from [`requirements.txt`](requirements.txt) during deployment. The first request
+may be slow while the model is downloaded, and Vercel's function-size and execution-time limits may make a
+dedicated Python host (such as Cloud Run or Modal) a better choice for production traffic. If using a dedicated
+host instead, set `LAYA_API_URL` in Vercel's environment settings to its HTTPS `/predict` endpoint; the Vite
+proxy's local default remains `http://127.0.0.1:8000/predict`.
 
 ## Stack
 

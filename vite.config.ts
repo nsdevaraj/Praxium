@@ -2,11 +2,11 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
 
-function typesafeProxy(apiKey: string) {
+function layaProxy(apiUrl: string) {
   return {
-    name: 'typesafe-proxy',
+    name: 'laya-proxy',
     configureServer(server: { middlewares: { use: (path: string, handler: (req: any, res: any) => void) => void } }) {
-      server.middlewares.use('/api/typesafe', async (req, res) => {
+      server.middlewares.use('/api/laya', async (req, res) => {
         if (req.method !== 'POST') {
           res.statusCode = 405
           res.end('Method not allowed')
@@ -15,10 +15,9 @@ function typesafeProxy(apiKey: string) {
         const chunks: Buffer[] = []
         for await (const chunk of req) chunks.push(Buffer.from(chunk))
         try {
-          const response = await fetch('https://api.typesafe.ai/v1/systemone', {
+          const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
-              Authorization: apiKey,
               'Content-Type': 'application/json',
             },
             body: Buffer.concat(chunks),
@@ -28,7 +27,7 @@ function typesafeProxy(apiKey: string) {
           res.end(await response.text())
         } catch {
           res.statusCode = 502
-          res.end(JSON.stringify({ error: 'TypeSafe AI is temporarily unavailable.' }))
+          res.end(JSON.stringify({ error: 'Laya is temporarily unavailable.' }))
         }
       })
     },
@@ -38,7 +37,7 @@ function typesafeProxy(apiKey: string) {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   return {
-    plugins: [react(), tailwindcss(), typesafeProxy(env.TYPESAFE_API_KEY ?? '')],
+    plugins: [react(), tailwindcss(), layaProxy(env.LAYA_API_URL ?? 'http://127.0.0.1:8000/predict')],
     server: { port: 5173, host: true },
   }
 })
